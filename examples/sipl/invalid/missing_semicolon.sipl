@@ -1,0 +1,4 @@
+begin
+  R := 1
+  Y := 2
+end

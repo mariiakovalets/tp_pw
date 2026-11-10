@@ -1,0 +1,3 @@
+begin
+  if (X + 1) > Y or not (X = 0) then R := (X + 1) * (Y - 2) else skip
+end

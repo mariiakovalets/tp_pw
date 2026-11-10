@@ -1,0 +1,74 @@
+// SIPL grammar, practical work 1 of the course manual (p. 8):
+//   P ::= begin S end
+//   S ::= x := a | S1 ; S2 | if b then S1 else S2 | while b do S | begin S end | skip
+//   a ::= n | x | a1 + a2 | a1 - a2 | a1 * a2 | (a)
+//   b ::= a1 = a2 | a1 > a2 | b1 ∨ b2 | ¬b | (b)
+// The course BNF is ambiguous (x + y * z, S1 ; S2 ; S3). Here the priorities
+// are written as extra levels, as in the manual's remark that a loop binds
+// tighter than ";": * before + and -, ¬ before ∨, all binary operators group
+// to the left. The language (set of programs) is the same.
+// Rules starting with "?" are inlined when they have one child, so the tree
+// keeps the shape of the course BNF.
+
+program: BEGIN statements END
+
+?statements: statement
+           | statements SEMI statement      -> seq
+
+?statement: var ASSIGN aexp                 -> assign
+          | IF bexp THEN statement ELSE statement -> if_stm
+          | WHILE bexp DO statement         -> while_stm
+          | BEGIN statements END            -> block
+          | SKIP                            -> skip
+
+?aexp: term
+     | aexp PLUS term                       -> add
+     | aexp MINUS term                      -> sub
+
+?term: factor
+     | term TIMES factor                    -> mul
+
+?factor: num
+       | var
+       | LPAR aexp RPAR                     -> paren_a
+
+?bexp: bterm
+     | bexp OR bterm                        -> or_b
+
+?bterm: batom
+      | NOT bterm                           -> not_b
+
+?batom: aexp EQ aexp                        -> eq
+      | aexp GT aexp                        -> gt
+      | LPAR bexp RPAR                      -> paren_b
+
+var: VAR
+num: NUM
+
+BEGIN: "begin"
+END: "end"
+IF: "if"
+THEN: "then"
+ELSE: "else"
+WHILE: "while"
+DO: "do"
+SKIP: "skip"
+OR: "or" | "∨"
+NOT: "not" | "¬"
+ASSIGN: ":="
+SEMI: ";"
+PLUS: "+"
+MINUS: "-"
+TIMES: "*"
+EQ: "="
+GT: ">"
+LPAR: "("
+RPAR: ")"
+
+// a variable is any identifier that is not a keyword; numbers are non-negative
+// (the BNF also lists -1, -2, …; write them as 0 - 1)
+VAR: /(?!(begin|end|if|then|else|while|do|skip|or|not)(?![A-Za-z0-9_]))[A-Za-z][A-Za-z0-9_]*/
+NUM: /[0-9]+/
+
+%import common.WS
+%ignore WS

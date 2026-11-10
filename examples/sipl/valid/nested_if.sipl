@@ -1,0 +1,6 @@
+begin
+  if X > 0 then
+    if Y > 0 then Q := 1 else Q := 4
+  else
+    if Y > 0 then Q := 2 else Q := 3
+end
