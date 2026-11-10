@@ -1,9 +1,8 @@
 # sipl-formal
 
-[![CI](https://github.com/mariiakovalets/sipl-formal/actions/workflows/ci.yml/badge.svg)](https://github.com/mariiakovalets/sipl-formal/actions/workflows/ci.yml)
 
-Інструменти з формальних мов для курсу «Теорія програмування», проєкт SIPL Language Toolkit, трек «Формальні мови».
-Спираються на практичні роботи 1 і 4–6 практикуму (О. Шишацька, А. Криволап, А. Шишацький).
+Проєкт SIPL Language Toolkit, трек «Формальні мови».
+
 
 ## Обрані завдання
 
