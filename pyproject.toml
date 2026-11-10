@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sipl-formal"
+version = "0.1.0"
+description = "Formal language tools for the SIPL course: CFG normal forms, derivations, language equations, pumping lemma explorer, SIPL parse trees"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["lark>=1.1,<2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff", "mypy", "build"]
+demo = ["ipykernel"]
+
+[project.scripts]
+sipl-formal = "sipl_formal.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+sipl_formal = ["sipl/*.lark"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.mypy]
+ignore_missing_imports = true
