@@ -154,6 +154,27 @@ def all_splits(word: str, k: int):
                     yield split_by_lengths(word, [start, l1, lx, l2])
 
 
+# kinds of splits, in the order of the usual proof that a block language is not context-free
+CASES = {
+    "const": "t1 або t2 зачіпає блок сталої довжини, тож при повторенні цей блок змінюється",
+    "mixed": "у t1 або t2 різні букви, тож при повторенні ламається порядок букв",
+    "single": "t1 і t2 складаються кожне з однієї букви, тож при повторенні ламається співвідношення кількостей",
+}
+
+
+def split_case(lang: PatternLanguage, n: int, split: Split) -> str:
+    """Which of the CASES a split belongs to."""
+    owner = [i for i, b in enumerate(lang.blocks) for _ in range(b.length(n))]  # block of every position
+    s1 = len(split.u)
+    s2 = s1 + len(split.t1) + len(split.x)
+    pieces = [(s1, split.t1), (s2, split.t2)]
+    if any(lang.blocks[owner[p]].coef == 0 for start, t in pieces for p in range(start, start + len(t))):
+        return "const"
+    if any(len(set(t)) > 1 for _, t in pieces):
+        return "mixed"
+    return "single"
+
+
 @dataclass
 class Exploration:
     language: PatternLanguage
@@ -177,13 +198,25 @@ class Exploration:
             "при якому слово виходить за межі мови. Для цього слова й k лема не виконується."
         )
 
+    def failing_by_case(self) -> dict[str, Split]:
+        """One failing split per case. Preferred: t1 and t2 both non-empty and made of different letters."""
+        def score(split: Split) -> tuple[bool, bool]:
+            return bool(split.t1 and split.t2), bool(split.t1 and split.t2 and set(split.t1) != set(split.t2))
+
+        examples: dict[str, Split] = {}
+        for split in self.failed:
+            case = split_case(self.language, self.n or 0, split)
+            if case not in examples or score(split) > score(examples[case]):
+                examples[case] = split
+        return {case: examples[case] for case in CASES if case in examples}
+
     def to_dict(self, show: int = 10) -> dict:
         return {
             "language": str(self.language), "word": self.word, "n": self.n, "k": self.k,
             "i_max": self.i_max, "splits_checked": self.total,
             "surviving": len(self.survivors), "verdict": self.verdict, "note": DISCLAIMER,
             "surviving_examples": [s.to_dict() for s in self.survivors[:show]],
-            "failing_examples": [s.to_dict() for s in self.failed[:show]],
+            "failing_by_case": {case: s.to_dict() for case, s in self.failing_by_case().items()},
         }
 
 
@@ -239,7 +272,8 @@ def exploration_to_text(result: Exploration, show: int = 3) -> str:
         lines.append("\nРозклади, що витримують накачку:")
         lines += [split_to_text(s, result.k) for s in result.survivors[:show]]
     if result.failed:
-        lines.append("\nПриклади розкладів, що не витримують:")
-        lines += [split_to_text(s, result.k) for s in result.failed[:show]]
+        lines.append("\nРозклади, що не витримують, по одному на кожен випадок:")
+        for case, split in result.failing_by_case().items():
+            lines += ["", f"Випадок: {CASES[case]}.", split_to_text(split, result.k)]
     lines += ["", DISCLAIMER]
     return "\n".join(lines)

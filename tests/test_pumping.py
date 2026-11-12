@@ -65,3 +65,16 @@ def test_bad_patterns_are_explained(text):
 def test_text_contains_disclaimer():
     text = exploration_to_text(explore(parse_pattern("a^n b^n"), k=2))
     assert "асистент" in text and "[" in text
+
+
+def test_one_failing_example_per_case_of_the_proof():
+    result = explore(parse_pattern(VARIANT_9), k=4, n=4)
+    examples = result.failing_by_case()
+    assert list(examples) == ["const", "mixed", "single"]
+    assert "a" in examples["const"].t1 + examples["const"].t2
+    assert any(len(set(t)) > 1 for t in (examples["mixed"].t1, examples["mixed"].t2))
+    single = examples["single"]
+    assert len(set(single.t1)) == len(set(single.t2)) == 1 and set(single.t1) != set(single.t2)
+    assert all(not s.survives for s in examples.values())
+    text = exploration_to_text(result)
+    assert text.count("Випадок:") == 3

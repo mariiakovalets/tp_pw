@@ -36,6 +36,10 @@ def _rule(lhs: str, rhs: tuple[str, ...]) -> str:
     return f"{lhs} → {format_rhs(rhs)}"
 
 
+def _removed(rules: list[tuple[str, tuple[str, ...]]]) -> list[str]:
+    return ["видалено: " + ", ".join(_rule(lhs, rhs) for lhs, rhs in rules)] if rules else []
+
+
 def _fixpoint(first: list[str], grow) -> list[list[str]]:
     """Iterate a monotone set until it stops growing; returns every iteration."""
     iterations = [first]
@@ -81,12 +85,13 @@ def remove_unproductive(g: Grammar) -> tuple[Grammar, Step]:
     step.details.append(f"Множина стабілізувалась: Pr = {_set(iterations[-1])}.")
     removed = [a for a in g.nonterminals if a not in productive]
     step.details.append(f"Непродуктивні: {_set(removed)}." if removed else "Непродуктивних нетерміналів немає.")
-    new = Grammar(g.start)
+    new, dropped = Grammar(g.start), []
     for lhs, rhs in g.productions():
         if lhs in productive and all(not is_nonterminal_token(s) or s in productive for s in rhs):
             new.add(lhs, rhs)
         else:
-            step.details.append(f"видалено правило {_rule(lhs, rhs)}")
+            dropped.append((lhs, rhs))
+    step.details += _removed(dropped)
     new.rules.setdefault(g.start, [])
     if g.start not in productive:
         step.details.append("Аксіома непродуктивна, тому мова порожня.")
@@ -101,12 +106,13 @@ def remove_unreachable(g: Grammar, title: str = "Видалення недося
     step.details += [f"R{i} = {_set(it)}" for i, it in enumerate(iterations)]
     removed = [a for a in g.nonterminals if a not in reachable]
     step.details.append(f"Недосяжні: {_set(removed)}." if removed else "Недосяжних нетерміналів немає.")
-    new = Grammar(g.start)
+    new, dropped = Grammar(g.start), []
     for lhs, rhs in g.productions():
         if lhs in reachable:
             new.add(lhs, rhs)
         else:
-            step.details.append(f"видалено правило {_rule(lhs, rhs)}")
+            dropped.append((lhs, rhs))
+    step.details += _removed(dropped)
     new.rules.setdefault(g.start, [])
     step.grammar = new
     return new, step
@@ -123,13 +129,14 @@ def remove_epsilon(g: Grammar) -> tuple[Grammar, Step]:
             continue
         # every occurrence of a nullable nonterminal may be kept or dropped
         options = [((s,), ()) if s in nullable else ((s,),) for s in rhs]
+        added = []
         for choice in product(*options):
             variant = tuple(s for part in choice for s in part)
             if variant and variant != (lhs,) and new.add(lhs, variant) and variant != rhs:
-                step.details.append(f"додано {_rule(lhs, variant)} (з {_rule(lhs, rhs)})")
-    for lhs, rhs in g.productions():
-        if not rhs:
-            step.details.append(f"видалено правило {_rule(lhs, rhs)}")
+                added.append(format_rhs(variant))
+        if added:
+            step.details.append(f"з {_rule(lhs, rhs)} додано: " + ", ".join(added))
+    step.details += _removed([(lhs, rhs) for lhs, rhs in g.productions() if not rhs])
     if g.start in nullable:
         new_start = fresh_name(new, g.start)
         rules = {new_start: [(g.start,), ()]}
@@ -166,11 +173,10 @@ def remove_unit(g: Grammar) -> tuple[Grammar, Step]:
                     closure.append(rhs[0])
                     todo.append(rhs[0])
         for b in closure:
-            for rhs in g.rules.get(b, []):
-                if not is_unit(rhs) and new.add(a, rhs) and b != a:
-                    step.details.append(f"додано {_rule(a, rhs)} (через {a} ⇒* {b})")
-    for lhs, rhs in units:
-        step.details.append(f"видалено правило {_rule(lhs, rhs)}")
+            added = [format_rhs(rhs) for rhs in g.rules.get(b, []) if not is_unit(rhs) and new.add(a, rhs)]
+            if added and b != a:
+                step.details.append(f"{a} ⇒* {b}, тому {a} отримує правила {b}: " + ", ".join(added))
+    step.details += _removed(units)
     new.rules.setdefault(g.start, [])
     step.grammar = new
     return new, step
