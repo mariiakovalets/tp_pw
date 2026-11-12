@@ -24,8 +24,8 @@
 Потрібен Python 3.10 або новіший.
 
 ```bash
-git clone https://github.com/mariiakovalets/sipl-formal.git
-cd sipl-formal
+git clone https://github.com/mariiakovalets/tp_pw.git
+cd tp_pw
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
